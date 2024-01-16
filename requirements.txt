@@ -5,3 +5,4 @@ svgwrite
 numpy
 pillow
 opencv-python
+pyimgur

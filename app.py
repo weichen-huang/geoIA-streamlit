@@ -4,6 +4,7 @@ from PIL import Image
 import numpy as np
 import cv2
 import hashlib
+import pyimgur
 import time
 import os
 
@@ -60,6 +61,24 @@ def overlay_mask(base_image_path, mean_mask):
     final_image = Image.composite(mask_rgba, base_image, mean_mask_image)
     return final_image
 
+def delete_files_in_folder(folder_path):
+    try:
+        # Iterate over all files in the folder
+        for filename in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, filename)
+
+            # Check if the path is a file (not a directory)
+            if os.path.isfile(file_path):
+                # Delete the file
+                os.remove(file_path)
+                print(f"Deleted: {file_path}")
+
+        print("All files deleted successfully.")
+
+    except Exception as e:
+        print(f"Error deleting files: {e}")
+
+
 st.title("IB Geo IA Survey")
 
 # Upload an image
@@ -82,13 +101,19 @@ canvas_result = st_canvas(
     drawing_mode="freedraw",
     key="canvas",
 )
-
+im = pyimgur.Imgur(
+    "253ebfef9de391c"
+)
 if st.button("Save"):
 
     mask = canvas_to_mask(canvas_result, img_array.shape)
     if mask is not None:
         mask = fill_enclosed_areas(mask)
-        cv2.imwrite(f"data/{generate_short_hash()}.png", mask)
+        cur = generate_short_hash()
+        cv2.imwrite(f"data/{cur}.png", mask)
+        uploaded_image = im.upload_image(f"data/{cur}.png", title="Data Backup")
+        st.markdown(uploaded_image.title)
+        st.markdown(uploaded_image.link)
     else:
         st.warning("Please draw on the image.")
 
@@ -109,3 +134,7 @@ if st.button("Aggregate data"):
         )
     else:
         st.warning("No saved data found in the data folder.")
+
+
+if st.button("Clear data"):
+    delete_files_in_folder("data")
