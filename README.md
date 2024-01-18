@@ -1,5 +1,8 @@
-# Streamlit - Drawable Canvas - Demo
+# Geography IA Demo code
 
-Streamlit Drawable Canvas demo on Streamlit Sharing
+```
+pip install streamlit opencv-python numpy streamlit-canvas
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/andfanilo/streamlit-drawable-canvas-demo/master/app.py)
+streamlit run app.py
+```
+
