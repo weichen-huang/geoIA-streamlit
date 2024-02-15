@@ -6,7 +6,15 @@ import cv2
 import hashlib
 import pyimgur
 import time
+import hmac
 import os
+st.set_page_config(layout="wide")
+password = st.secrets["dbx"]
+im = pyimgur.Imgur(
+    "253ebfef9de391c"
+)
+if not os.path.exists("data"):
+    os.mkdir("data")
 
 # Function to convert the canvas drawing to a binary mask
 def canvas_to_mask(canvas_result, img_shape):
@@ -79,20 +87,42 @@ def delete_files_in_folder(folder_path):
         print(f"Error deleting files: {e}")
 
 
-st.title("IB Geo IA Survey")
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if hmac.compare_digest(st.session_state["password"], password):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store the password.
+        else:
+            st.session_state["password_correct"] = False
+
+    # Return True if the password is validated.
+    if st.session_state.get("password_correct", False):
+        return True
+
+    # Show input for password.
+    st.text_input(
+        "Password", type="password", on_change=password_entered, key="password"
+    )
+    if "password_correct" in st.session_state:
+        st.error("😕 Password incorrect")
+    return False
+
+
+st.title("IB Geography Survey")
 
 # Upload an image
 
-
 image = Image.open("img/map.png").convert("RGB")
 img_array = np.array(image)
-width = st.slider('Stroke width', 0, 20, 5)
 
 # Create a canvas for drawing
-st.subheader("Highlight the central business district area:")
+st.subheader("Highlight the central business district:")
 canvas_result = st_canvas(
     fill_color="rgba(255, 165, 0, 0.7)",  # Use an orange, semi-transparent fill
-    stroke_width=width,
+    stroke_width=5,
     stroke_color="rgba(255, 165, 0, 0.7)",
     background_image=Image.open("img/map.png"),
     update_streamlit=True,
@@ -101,9 +131,9 @@ canvas_result = st_canvas(
     drawing_mode="freedraw",
     key="canvas",
 )
-im = pyimgur.Imgur(
-    "253ebfef9de391c"
-)
+#im = pyimgur.Imgur(
+#    "253ebfef9de391c"
+#)
 if st.button("Save"):
 
     mask = canvas_to_mask(canvas_result, img_array.shape)
@@ -111,9 +141,21 @@ if st.button("Save"):
         mask = fill_enclosed_areas(mask)
         cur = generate_short_hash()
         cv2.imwrite(f"data/{cur}.png", mask)
-        uploaded_image = im.upload_image(f"data/{cur}.png", title="Data Backup")
-        st.markdown(uploaded_image.title)
-        st.markdown(uploaded_image.link)
+        uploaded_image = im.upload_image(f"data/{cur}.png", title=f"Data Backup [GEOIA2024] {cur}")
+        print(uploaded_image.link)
+        with open("bkup.txt", "a+") as f:
+            f.write(str(uploaded_image.link) + "\n")
+            f.close()
+
+        with open("bkup.txt", "r") as f:
+            txt = f.read()
+            st.download_button(
+                label="Download backup",
+                data=txt,
+                file_name="bkup.txt",
+                mime="text/plain"
+            )
+            f.close()
     else:
         st.warning("Please draw on the image.")
 
@@ -137,4 +179,5 @@ if st.button("Aggregate data"):
 
 
 if st.button("Clear data"):
-    delete_files_in_folder("data")
+    if check_password():
+        delete_files_in_folder("data")
